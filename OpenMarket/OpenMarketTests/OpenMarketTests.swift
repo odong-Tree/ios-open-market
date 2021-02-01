@@ -53,19 +53,62 @@ class OpenMarketTests: XCTestCase {
         XCTAssertEqual(url, expectResult, "Making URL is Failed")
     }
     
-    // MARK: Paser test
+    // MARK: Mock 데이터 테스트
+    func testItemListDecode() throws {
+        // 1. given
+        var mockItemList: Items?
+        guard let jsonData = NSDataAsset(name: "items") else { return }
+        
+        // 2. when
+        mockItemList = try JSONDecoder().decode(Items.self, from: jsonData.data)
+        
+        // 3. then
+        XCTAssertEqual(mockItemList?.page, 1)
+        XCTAssertEqual(mockItemList?.items[0].title, "MacBook Air")
+        XCTAssertEqual(mockItemList?.items[0].id, 1)
+        XCTAssertEqual(mockItemList?.items[1].title, "MacBook Pro")
+    }
+    
+    func testItemDecode() throws {
+        // 1. given
+        var mockItem: Item?
+        guard let jsonData = NSDataAsset(name: "item") else { return }
+        
+        // 2. when
+        mockItem = try JSONDecoder().decode(Item.self, from: jsonData.data)
+        
+        // 3. then
+        XCTAssertEqual(mockItem?.id, 1)
+        XCTAssertEqual(mockItem?.title, "MacBook Air")
+        XCTAssertEqual(mockItem?.price, 1290000)
+    }
+    
+    func testIdDecode() throws {
+        // 1. given
+        var mockItem: ItemToDelete?
+        guard let jsonData = NSDataAsset(name: "id") else { return }
+        
+        // 2. when
+        mockItem = try JSONDecoder().decode(ItemToDelete.self, from: jsonData.data)
+        
+        // 3. then
+        XCTAssertEqual(mockItem?.id, 1)
+    }
+    
+    // MARK: APIManager 테스트
     func testDecodeItemsList() throws {
         // 1. given
         let url = try URLManager.makeURL(type: .itemsListPage(1))
         var itemsList: Items?
         let expectation = XCTestExpectation(description: "Wait Decoding")
-        
+
         // 2. when
-        Parser<Items>.decodeData(url: url) { result in
+        APIManager<Items>.handleRequest(object: nil, url: url, httpMethod: .get) { result in
             switch result {
             case .success(let object):
-                itemsList = object
-            case .failure:
+                itemsList = object as? Items
+            case .failure(let error):
+                print(error)
                 XCTFail("Failed Decoding")
             }
             expectation.fulfill()
@@ -84,18 +127,19 @@ class OpenMarketTests: XCTestCase {
         let url = try URLManager.makeURL(type: .itemId(55))
         var item: Item?
         let expectation = XCTestExpectation(description: "Wait Decoding")
-        
+
         // 2. when
-        Parser<Item>.decodeData(url: url) { result in
+        APIManager<Item>.handleRequest(object: nil, url: url, httpMethod: .get) { result in
             switch result {
             case .success(let object):
-                item = object
-            case .failure:
+                item = object as? Item
+            case .failure(let error):
+                print(error)
                 XCTFail("Failed Decoding")
             }
             expectation.fulfill()
         }
-        
+
         // 3. then
         wait(for: [expectation], timeout: 10)
         XCTAssertEqual(item?.currency, "USD", "It is not equal.")
@@ -107,22 +151,22 @@ class OpenMarketTests: XCTestCase {
         // 1. given
         let url = try URLManager.makeURL(type: .registItem)
         let expectation = XCTestExpectation(description: "Wait Posting")
-        var resultItem: Item?
-        
+        var resultItem: itemToUpload?
+
         let yagomImage: UIImage = UIImage(named: "yagom.jpeg")!
         let bearImage: UIImage = UIImage(named: "bear.jpeg")!
         guard let imageData1 = yagomImage.jpegData(compressionQuality: 1),
               let imageData2 = bearImage.jpegData(compressionQuality: 1) else { return }
-        
-        let item: ItemToPost = ItemToPost(title: "야곰야곰야곰야곰야곰", descriptions: "야곰야곰야곰야곰야곰야곰을 판매합니다.", price: 1, currency: "KRW", stock: 1, discountedPrice: nil, images: [imageData1, imageData2], password: "0")
-        
+
+        let item: itemToUpload = itemToUpload(title: "야곰야곰야곰야곰야곰", descriptions: "야곰야곰야곰야곰야곰야곰을 판매합니다.", price: 1, currency: "KRW", stock: 1, discountedPrice: nil, images: [imageData1, imageData2], password: "0")
+
         // 2. when
-        Parser<ItemToPost>.postData(url: url, object: item) { result in
+        APIManager<itemToUpload>.handleRequest(object: item, url: url, httpMethod: .post) { result in
             switch result {
             case .success(let data):
                 dump(data)
                 do {
-                    resultItem = try JSONDecoder().decode(Item.self, from: data)
+                    resultItem = try JSONDecoder().decode(itemToUpload.self, from: data as! Data)
                 } catch {
                     XCTFail("Failed Decoding")
                 }
@@ -131,65 +175,8 @@ class OpenMarketTests: XCTestCase {
             }
             expectation.fulfill()
         }
-        
+
         // 3. then
         wait(for: [expectation], timeout: 30)
-    }
-    
-    func testPatchItem() throws {
-        // 1. given
-        let url = try URLManager.makeURL(type: .itemId(367))
-        var resultItem: Item?
-        
-        let itemInfo = ItemToPatch(title: "어제 목욕탕을 가서 바나나우유를 마신 야곰", descriptions: "바나나우유의 제조사는 빙그레입니다.", price: 10000, currency: nil, stock: 10, discountedPrice: nil, images: nil, password: "0")
-        let expectation = XCTestExpectation(description: "Wait Patching")
-        
-        // 2. when
-        Parser<ItemToPatch>.patchData(url: url, object: itemInfo) { result in
-            switch result {
-            case .success(let data):
-                dump(data)
-                do {
-                    resultItem = try JSONDecoder().decode(Item.self, from: data)
-                } catch {
-                    XCTFail("Failed Decoding")
-                }
-            case .failure:
-                XCTFail("Failed Posting")
-            }
-            expectation.fulfill()
-        }
-        
-        // 3. then
-        wait(for: [expectation], timeout: 20)
-    }
-    
-    func testDeleteItem() throws {
-        // 1. given
-        let url = try URLManager.makeURL(type: .itemId(366))
-        var resultItem: DeleteResponseItem?
-        
-        let itemInfo = ItemToDelete(id: 366, password: "0")
-        let expectation = XCTestExpectation(description: "Wait Deleting")
-            
-        // 2. when
-        Parser<ItemToDelete>.deleteData(url: url, object: itemInfo) { result in
-            switch result {
-            case .success(let data):
-                dump(data)
-                do {
-                    resultItem = try JSONDecoder().decode(DeleteResponseItem.self, from: data)
-                    XCTAssertEqual(resultItem?.id, 366, "It is not equal.")
-                } catch {
-                    XCTFail("Failed Decoding")
-                }
-            case .failure:
-                XCTFail("Failed Posting")
-            }
-            expectation.fulfill()
-        }
-        
-        // 3. then
-        wait(for: [expectation], timeout: 10)
     }
 }

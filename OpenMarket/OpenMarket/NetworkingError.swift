@@ -13,4 +13,5 @@ enum NetworkingError: Error {
     case failedResponse
     case noData
     case failedEncoding
+    case failedDecoding
 }

@@ -35,5 +35,3 @@ struct URLManager {
         return url
     }
 }
-
-
