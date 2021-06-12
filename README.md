@@ -42,7 +42,7 @@ URLSession을 활용하여 상품을 관리하는 get, post, patch, delete 기�
 
 # 주요 고민 포인트
 
-### 🤔 URLSession을 처리하는 구조에 대한 고민
+## 🤔 URLSession을 처리하는 구조에 대한 고민
 
  URLSession에 대한 코드를 작성하다보니 HTTPMethod, Reqeust, body, URL 등 필요한 요소들은 많아지는 반면에 교묘하게 (내용상 비슷하지만 코드가 다른) 중복되는 코드들이 많아지게 되었습니다. <br>
 
@@ -71,7 +71,7 @@ URLSession을 활용하여 상품을 관리하는 get, post, patch, delete 기�
 
 <br>
 
-### 🤔 비동기로 처리되는 테스트 코드
+## 🤔 비동기로 처리되는 테스트 코드
 
  비동기 메서드를 테스트하기 위해서는 비동기로 처리되는 작업을 기다려주어야 했습니다.
 
@@ -107,7 +107,7 @@ func testDecodeItem() throws {
 
 <br>
 
-### 🤔 이미지 업로드하기 (Content-Type: multipart/data-form)
+## 🤔 이미지 업로드하기 (Content-Type: multipart/data-form)
 
  이미지와 JSON을 함께 서버에 보내는 방법에 대해 고민하게 되었습니다. 이 코드를 좀 더 이해하기 위해서 HTTP 요청 메세지의 헤더와 multipart/data-form 이라는 MIMEType에 대해서 이해가 필요했습니다. <br>
 
